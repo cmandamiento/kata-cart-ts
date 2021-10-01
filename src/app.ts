@@ -4,58 +4,70 @@ export interface FruitType {
   price: number;
 }
 
-export interface CartItemType {
-  sku: string;
-  quantity: number;
-  price?: number;
-}
-
 export const FruitDb = {
-  pear: {
-    sku: "0001",
+  Pear: {
+    sku: "Pear",
     name: "Pear",
     price: 10,
   },
-  banana: {
-    sku: "0002",
+  Banana: {
+    sku: "Banana",
     name: "Banana",
     price: 15,
   },
+  Apple: {
+    sku: "Apple",
+    name: "Apple",
+    price: 15,
+  },
+  Orange: {
+    sku: "Orange",
+    name: "Orange",
+    price: 10,
+  },
 };
 
-class Cart {
-  products: FruitType[];
+type CartType = Map<string, number>;
 
-  constructor(products?: FruitType[]) {
-    this.products = products || [];
+export interface PromoSpecification {
+  isSatisfiedBy: (cart: CartType) => void;
+}
+
+// Pears => 40
+// Apple => 15
+// Pear promo => -4
+// Pear & Apple promo => -10
+
+// const promoSpecfication = (cart: CartType) => {};
+
+class Cart {
+  items: CartType;
+
+  constructor(items: CartType = new Map()) {
+    this.items = items;
   }
 
-  getCart() {
-    return this.products;
+  getCart(): CartType {
+    return this.items;
   }
 
   add(product: FruitType, quantity: number) {
-    // const = constante y let = variable
-
-    if (quantity > 1) {
-      Array(quantity).forEach((item) => this.products.push(product));
+    if (this.items.get(product.sku)) {
+      this.items.set(product.sku, this.items.get(product.sku) + quantity);
     } else {
-      this.products.push(product);
+      this.items.set(product.sku, quantity);
     }
   }
 
   calculateTotal(): number {
-    const cart = []; // {qty: 2 name: 'Pear'}
+    let total = 0;
 
-    // TODO: Agrupar las frutas
-    // TODO: Agrupar usando Map / Set
-    this.products.forEach((fruit) => {
-      // const elm = this.find((fruit) => fruit.sku === current.sku);
+    // Map to Array [[key, value], [key, value]]
+    Array.from(this.items.entries()).forEach(([key, value]) => {
+      total = FruitDb[key].price * value + total;
     });
 
-    // TODO: Calculo por bulk price
-
-    return 0;
+    return total;
   }
 }
 

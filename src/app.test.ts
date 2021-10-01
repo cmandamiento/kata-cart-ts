@@ -1,9 +1,9 @@
-import Cart, { CartItemType, FruitType } from "./app";
+import Cart, { FruitDb, FruitType } from "./app";
 
 describe("Cart test", () => {
   it("Cart allows add item", () => {
     const Fruit: FruitType = {
-      sku: "1100",
+      sku: "Orange",
       name: "Orange",
       price: 10,
     };
@@ -11,38 +11,25 @@ describe("Cart test", () => {
     const quantity = 1;
     const newCart = new Cart();
 
-    expect(newCart.getCart()).toHaveLength(0);
+    expect(newCart.getCart().size).toBe(0);
 
     newCart.add(Fruit, quantity);
 
-    expect(newCart.getCart()).toHaveLength(1);
-    expect(newCart.getCart()[0].sku).toBe(Fruit.sku);
+    expect(newCart.getCart().size).toBe(1);
+    expect(newCart.getCart().get(Fruit.sku)).toBe(quantity);
   });
 
   it("Cart calculates total", () => {
-    const Fruits: FruitType[] = [
-      {
-        sku: "1111",
-        name: "Pear",
-        price: 10,
-      },
-      {
-        sku: "2222",
-        name: "Apple",
-        price: 15,
-      },
-    ];
+    const items = new Map();
+    items.set("Pear", 1);
+    items.set("Apple", 1);
 
-    const newCart = new Cart(Fruits);
+    const newCart = new Cart(items);
     expect(newCart.calculateTotal()).toBe(25);
   });
 
   it("Cart calculates bulk prices", () => {
-    const Pear: FruitType = {
-      sku: "xxx",
-      name: "Pear",
-      price: 10,
-    };
+    const Pear = FruitDb.Pear;
 
     const newCart = new Cart();
     newCart.add(Pear, 2);
