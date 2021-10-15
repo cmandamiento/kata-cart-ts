@@ -1,5 +1,3 @@
-type Sku = string;
-
 export interface FruitType {
   sku: Sku;
   name: string;
@@ -22,18 +20,47 @@ export const FruitDb = {
     name: "Apple",
     price: 20,
   },
-  Orange: {
-    sku: "Orange",
-    name: "Orange",
-    price: 10,
-  },
 };
 
+type Sku = string;
 type CartType = Map<Sku, number>;
+
+type Weekday = number;
+export enum DayOfWeek {
+  Sunday = 0,
+  Monday,
+  Tuesday,
+  Wednesday,
+  Thursday,
+  Friday,
+  Saturday,
+}
+
+export interface CurrentWeekdayProvider {
+  getCurrentWeekday: () => DayOfWeek;
+}
+
+export class DateWeekdayProvider implements CurrentWeekdayProvider {
+  currentDate: Date;
+
+  getCurrentWeekday(): DayOfWeek {
+    return this.currentDate.getDay();
+  }
+
+  constructor() {
+    this.currentDate = new Date();
+  }
+}
 
 export interface PromoSpecification {
   calculateDiscount: (cart: CartType) => number;
 }
+
+// Item	Price	Bulk Price	When it applies
+// Pear	10	2 for 18	Everyday
+// Apple	20	3 for 50	Monday
+// Apple	20	30 for 450	Friday
+// Banana	15	no bulk price	-
 
 export class PearPromotion implements PromoSpecification {
   calculateDiscount(cart: CartType): number {
@@ -49,8 +76,15 @@ export class PearPromotion implements PromoSpecification {
   }
 }
 
-export class ApplePromotion implements PromoSpecification {
+export class ApplePromotionMonday implements PromoSpecification {
+  number = DayOfWeek.Monday;
+  numberProvider: CurrentWeekdayProvider;
+
   calculateDiscount(cart: CartType): number {
+    if (this.numberProvider.getCurrentWeekday() != this.number) {
+      return 0;
+    }
+
     let appleCount = 0;
 
     for (const [key, value] of cart) {
@@ -61,24 +95,50 @@ export class ApplePromotion implements PromoSpecification {
 
     return 10 * Math.floor(appleCount / 3);
   }
+
+  constructor(weekdayProvider: CurrentWeekdayProvider) {
+    this.numberProvider = weekdayProvider;
+  }
 }
 
-// Pears => 40
-// Apple => 15
-// Pear promo => -4
-// Pear & Apple promo => -10
+export class ApplePromotionFriday implements PromoSpecification {
+  number = DayOfWeek.Friday;
+  numberProvider: CurrentWeekdayProvider;
 
-const promoSpecfication = (cart: CartType) => { };
+  calculateDiscount(cart: CartType): number {
+    if (this.numberProvider.getCurrentWeekday() != this.number) {
+      return 0;
+    }
+
+    let appleCount = 0;
+
+    for (const [key, value] of cart) {
+      if (key === "Apple") {
+        appleCount += value;
+      }
+    }
+
+    return 150 * Math.floor(appleCount / 30);
+  }
+
+  constructor(numberProvider: CurrentWeekdayProvider) {
+    this.numberProvider = numberProvider;
+  }
+}
 
 class Cart {
   items: CartType;
-  discounts: Array<PromoSpecification> = [
-    new PearPromotion(),
-    new ApplePromotion(),
-  ];
+  weekdayProvider: CurrentWeekdayProvider;
+  discounts: Array<PromoSpecification>;
 
-  constructor(items: CartType = new Map()) {
+  constructor(items: CartType = new Map(), weekdayProvider: CurrentWeekdayProvider = new DateWeekdayProvider()) {
     this.items = items;
+    this.weekdayProvider = weekdayProvider;
+    this.discounts = [
+      new PearPromotion(),
+      new ApplePromotionMonday(this.weekdayProvider),
+      new ApplePromotionFriday(this.weekdayProvider),
+    ];
   }
 
   getCart(): CartType {
@@ -94,19 +154,19 @@ class Cart {
   }
 
   calculateTotal(): number {
-    let total = 0;
+    let subTotal = 0;
     let discountTotal = 0;
 
     // Map to Array [[key, value], [key, value]]
     Array.from(this.items.entries()).forEach(([key, value]) => {
-      total = FruitDb[key].price * value + total;
+      subTotal = FruitDb[key].price * value + subTotal;
     });
 
     Array.from(this.discounts.entries()).forEach(([key, value]) => {
       discountTotal += value.calculateDiscount(this.items);
     });
 
-    return total - discountTotal;
+    return subTotal - discountTotal;
   }
 }
 
